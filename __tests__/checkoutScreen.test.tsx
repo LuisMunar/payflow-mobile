@@ -2,6 +2,7 @@ import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 
 import { CheckoutScreen } from '../src/features/checkout/CheckoutScreen';
+import { setCheckoutStep } from '../src/features/checkout/checkoutSlice';
 import type { RootState } from '../src/app/store';
 
 const navigation = {
@@ -9,9 +10,11 @@ const navigation = {
   goBack: jest.fn(),
   navigate: jest.fn(),
 };
-let mockState: Pick<RootState, 'cart'>;
+const mockDispatch = jest.fn();
+let mockState: Pick<RootState, 'cart' | 'checkout'>;
 
 jest.mock('../src/app/hooks', () => ({
+  useAppDispatch: () => mockDispatch,
   useAppSelector: (selector: (state: RootState) => unknown) =>
     selector(mockState as RootState),
 }));
@@ -31,6 +34,7 @@ describe('CheckoutScreen', () => {
     navigation.canGoBack.mockReturnValue(true);
     navigation.goBack.mockReset();
     navigation.navigate.mockReset();
+    mockDispatch.mockReset();
     mockState = {
       cart: {
         items: [
@@ -49,6 +53,12 @@ describe('CheckoutScreen', () => {
           },
         ],
         restored: true,
+      },
+      checkout: {
+        cardSummary: null,
+        customerEmail: '',
+        customerName: '',
+        step: 'cart',
       },
     };
   });
@@ -79,5 +89,20 @@ describe('CheckoutScreen', () => {
 
     expect(navigation.goBack).not.toHaveBeenCalled();
     expect(navigation.navigate).toHaveBeenCalledWith('Cart');
+  });
+
+  it('opens the card form from checkout', () => {
+    const tree = render(
+      <CheckoutScreen navigation={navigation as never} route={{} as never} />,
+    );
+
+    ReactTestRenderer.act(() => {
+      tree.root
+        .findByProps({ accessibilityLabel: 'Pay with credit card' })
+        .props.onPress();
+    });
+
+    expect(mockDispatch).toHaveBeenCalledWith(setCheckoutStep('card'));
+    expect(tree.root.findByProps({ children: 'Add your payment card' })).toBeTruthy();
   });
 });
