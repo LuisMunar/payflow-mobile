@@ -1,6 +1,8 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import { CartScreen } from '../../features/cart/CartScreen';
+import { CheckoutScreen } from '../../features/checkout/CheckoutScreen';
 import { ProductListScreen } from '../../features/products/ProductListScreen';
 import { SplashScreen } from '../../features/splash/SplashScreen';
 import { colors } from '../../shared/theme/colors';
@@ -28,6 +30,16 @@ export function RootNavigator() {
           name="Products"
           component={ProductListScreen}
           options={{ title: 'Products' }}
+        />
+        <Stack.Screen
+          name="Cart"
+          component={CartScreen}
+          options={{ title: 'Cart' }}
+        />
+        <Stack.Screen
+          name="Checkout"
+          component={CheckoutScreen}
+          options={{ title: 'Checkout' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

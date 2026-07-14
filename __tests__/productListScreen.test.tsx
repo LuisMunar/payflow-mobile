@@ -5,6 +5,7 @@ import { ProductListScreen } from '../src/features/products/ProductListScreen';
 import type { RootState } from '../src/app/store';
 
 const mockDispatch = jest.fn();
+const navigation = { navigate: jest.fn() };
 let mockState: Pick<RootState, 'cart' | 'products'>;
 
 jest.mock('../src/app/hooks', () => ({
@@ -26,9 +27,11 @@ function render(element: React.ReactElement) {
 describe('ProductListScreen', () => {
   beforeEach(() => {
     mockDispatch.mockReset();
+    navigation.navigate.mockReset();
     mockState = {
       cart: {
         items: [],
+        restored: true,
       },
       products: {
         error: null,
@@ -39,7 +42,7 @@ describe('ProductListScreen', () => {
   });
 
   it('requests products when the screen starts idle', () => {
-    render(<ProductListScreen />);
+    render(<ProductListScreen navigation={navigation as never} route={{} as never} />);
 
     expect(mockDispatch).toHaveBeenCalledTimes(1);
   });
@@ -62,6 +65,7 @@ describe('ProductListScreen', () => {
             quantity: 2,
           },
         ],
+        restored: true,
       },
       products: {
         error: null,
@@ -81,16 +85,23 @@ describe('ProductListScreen', () => {
       },
     };
 
-    const tree = render(<ProductListScreen />);
+    const tree = render(
+      <ProductListScreen navigation={navigation as never} route={{} as never} />,
+    );
 
     expect(tree.root.findByProps({ children: 'Choose your products' })).toBeTruthy();
     expect(tree.root.findByProps({ children: 2 })).toBeTruthy();
+    ReactTestRenderer.act(() => {
+      tree.root.findByProps({ accessibilityLabel: 'Open cart' }).props.onPress();
+    });
+    expect(navigation.navigate).toHaveBeenCalledWith('Cart');
   });
 
   it('renders backend errors with retry action', () => {
     mockState = {
       cart: {
         items: [],
+        restored: true,
       },
       products: {
         error: 'Network error',
@@ -99,11 +110,13 @@ describe('ProductListScreen', () => {
       },
     };
 
-    const tree = render(<ProductListScreen />);
+    const tree = render(
+      <ProductListScreen navigation={navigation as never} route={{} as never} />,
+    );
 
     expect(tree.root.findByProps({ children: 'Network error' })).toBeTruthy();
     ReactTestRenderer.act(() => {
-      tree.root.findByProps({ accessibilityRole: 'button' }).props.onPress();
+      tree.root.findByProps({ accessibilityLabel: 'Retry products' }).props.onPress();
     });
     expect(mockDispatch).toHaveBeenCalledTimes(1);
   });
