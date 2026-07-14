@@ -7,6 +7,7 @@ import { useAppDispatch } from './src/app/hooks';
 import { RootNavigator } from './src/app/navigation/RootNavigator';
 import { store } from './src/app/store';
 import { loadCart } from './src/features/cart/cartSlice';
+import { loadCheckout } from './src/features/checkout/checkoutSlice';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
@@ -26,6 +27,7 @@ function AppBootstrap() {
 
   useEffect(() => {
     dispatch(loadCart());
+    dispatch(loadCheckout());
   }, [dispatch]);
 
   return <RootNavigator />;

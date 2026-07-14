@@ -82,6 +82,12 @@ export function CartScreen({ navigation }: CartScreenProps) {
           label="Checkout"
           onPress={() => navigation.navigate('Checkout')}
         />
+        <Button
+          accessibilityLabel="Add more products"
+          label="Add more products"
+          variant="secondary"
+          onPress={() => navigation.navigate('Products')}
+        />
       </View>
     </Screen>
   );

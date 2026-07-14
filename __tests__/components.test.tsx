@@ -6,6 +6,7 @@ import { Button } from '../src/shared/components/Button';
 import { EmptyState } from '../src/shared/components/EmptyState';
 import { LoadingState } from '../src/shared/components/LoadingState';
 import { Screen } from '../src/shared/components/Screen';
+import { ToastBanner } from '../src/shared/components/ToastBanner';
 import { ProductCard } from '../src/features/products/ProductCard';
 import type { Product } from '../src/shared/types/api';
 
@@ -61,6 +62,15 @@ describe('shared components', () => {
     );
 
     expect(tree.root.findByProps({ children: 'Screen content' })).toBeTruthy();
+  });
+
+  it('renders toast banners only when there is a message', () => {
+    const visible = render(<ToastBanner message="Complete the form." />);
+    const hidden = render(<ToastBanner message={null} />);
+
+    expect(visible.root.findByProps({ children: 'Complete the form.' }))
+      .toBeTruthy();
+    expect(hidden.toJSON()).toBeNull();
   });
 
   it('renders product card details and add action', () => {

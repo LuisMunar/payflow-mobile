@@ -1,5 +1,6 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
+import { secureStorage } from '../../shared/storage/secureStorage';
 import type { Transaction } from '../../shared/types/api';
 import type { CardBrand } from '../../shared/validation/cardValidation';
 
@@ -12,6 +13,12 @@ export type CardSummary = {
   lastFour: string;
 };
 
+export type CheckoutDraft = {
+  cardSummary: CardSummary | null;
+  customerName: string;
+  customerEmail: string;
+};
+
 export type CheckoutState = {
   cardSummary: CardSummary | null;
   step: CheckoutStep;
@@ -20,6 +27,7 @@ export type CheckoutState = {
   paymentError: string | null;
   paymentResult: Transaction | null;
   paymentStatus: PaymentStatus;
+  restored: boolean;
 };
 
 export const initialCheckoutState: CheckoutState = {
@@ -30,7 +38,14 @@ export const initialCheckoutState: CheckoutState = {
   paymentError: null,
   paymentResult: null,
   paymentStatus: 'idle',
+  restored: false,
 };
+
+const checkoutStorageKey = 'checkout';
+
+export const loadCheckout = createAsyncThunk('checkout/load', async () => {
+  return secureStorage.getJson<CheckoutDraft>(checkoutStorageKey);
+});
 
 const checkoutSlice = createSlice({
   name: 'checkout',
@@ -69,8 +84,20 @@ const checkoutSlice = createSlice({
       state.step = 'result';
     },
     resetCheckout() {
-      return initialCheckoutState;
+      return { ...initialCheckoutState, restored: true };
     },
+  },
+  extraReducers: builder => {
+    builder
+      .addCase(loadCheckout.fulfilled, (state, action) => {
+        state.cardSummary = action.payload?.cardSummary ?? null;
+        state.customerEmail = action.payload?.customerEmail ?? '';
+        state.customerName = action.payload?.customerName ?? '';
+        state.restored = true;
+      })
+      .addCase(loadCheckout.rejected, state => {
+        state.restored = true;
+      });
   },
 });
 
@@ -84,4 +111,23 @@ export const {
   setPaymentProcessing,
   setPaymentResult,
 } = checkoutSlice.actions;
+
+export const checkoutStorage = {
+  key: checkoutStorageKey,
+  async persist(state: CheckoutState) {
+    const draft: CheckoutDraft = {
+      cardSummary: state.cardSummary,
+      customerEmail: state.customerEmail,
+      customerName: state.customerName,
+    };
+
+    if (!draft.cardSummary && !draft.customerEmail && !draft.customerName) {
+      await secureStorage.remove(checkoutStorageKey);
+      return;
+    }
+
+    await secureStorage.setJson(checkoutStorageKey, draft);
+  },
+};
+
 export default checkoutSlice.reducer;

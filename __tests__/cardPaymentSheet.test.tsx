@@ -69,6 +69,7 @@ function baseState(): Pick<RootState, 'cart' | 'checkout'> {
       paymentError: null,
       paymentResult: null,
       paymentStatus: 'idle',
+      restored: true,
       step: 'card',
     },
   };
@@ -161,6 +162,7 @@ describe('CardPaymentSheet', () => {
         paymentError: null,
         paymentResult: null,
         paymentStatus: 'idle',
+        restored: true,
         step: 'summary',
       },
     };

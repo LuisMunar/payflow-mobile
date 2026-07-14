@@ -64,6 +64,7 @@ describe('CheckoutScreen', () => {
         paymentError: null,
         paymentResult: null,
         paymentStatus: 'idle',
+        restored: true,
         step: 'cart',
       },
     };
@@ -112,6 +113,65 @@ describe('CheckoutScreen', () => {
 
     expect(mockDispatch).toHaveBeenCalledWith(setCheckoutStep('card'));
     expect(tree.root.findByProps({ children: 'Add your payment card' })).toBeTruthy();
+  });
+
+  it('shows a temporary message when customer data is incomplete', () => {
+    jest.useFakeTimers();
+    const tree = render(
+      <CheckoutScreen navigation={navigation as never} route={{} as never} />,
+    );
+
+    ReactTestRenderer.act(() => {
+      tree.root
+        .findByProps({ accessibilityLabel: 'Pay with credit card' })
+        .props.onPress();
+    });
+
+    expect(
+      tree.root.findByProps({
+        children: 'Enter a valid customer name and email before paying.',
+      }),
+    ).toBeTruthy();
+    expect(mockDispatch).not.toHaveBeenCalledWith(setCheckoutStep('card'));
+
+    ReactTestRenderer.act(() => {
+      jest.advanceTimersByTime(2800);
+    });
+
+    expect(
+      tree.root.findAllByProps({
+        children: 'Enter a valid customer name and email before paying.',
+      }),
+    ).toEqual([]);
+    jest.useRealTimers();
+  });
+
+  it('shows a message when trying to pay without products', () => {
+    jest.useFakeTimers();
+    mockState.cart.items = [];
+    mockState.checkout.customerEmail = 'luis@example.com';
+    mockState.checkout.customerName = 'Luis Munar';
+    const tree = render(
+      <CheckoutScreen navigation={navigation as never} route={{} as never} />,
+    );
+
+    ReactTestRenderer.act(() => {
+      tree.root
+        .findByProps({ accessibilityLabel: 'Pay with credit card' })
+        .props.onPress();
+    });
+
+    expect(
+      tree.root.findByProps({
+        children: 'Add at least one product before paying.',
+      }),
+    ).toBeTruthy();
+
+    ReactTestRenderer.act(() => {
+      jest.advanceTimersByTime(2800);
+    });
+
+    jest.useRealTimers();
   });
 
   it('closes card sheet and replaces checkout with result after payment', () => {
