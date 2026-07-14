@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../app/navigation/types';
@@ -17,7 +17,7 @@ import {
   selectHasCartItems,
 } from '../cart/cartSelectors';
 import { CardPaymentSheet } from './CardPaymentSheet';
-import { setCheckoutStep } from './checkoutSlice';
+import { setCheckoutStep, setCustomer } from './checkoutSlice';
 
 type CheckoutScreenProps = NativeStackScreenProps<RootStackParamList, 'Checkout'>;
 
@@ -27,7 +27,10 @@ export function CheckoutScreen({ navigation }: CheckoutScreenProps) {
   const itemCount = useAppSelector(selectCartItemCount);
   const totalInCents = useAppSelector(selectCartTotalInCents);
   const currency = useAppSelector(selectCartCurrency);
+  const customerName = useAppSelector(state => state.checkout.customerName);
+  const customerEmail = useAppSelector(state => state.checkout.customerEmail);
   const [isCardSheetOpen, setCardSheetOpen] = useState(false);
+  const canPay = hasItems && isValidCustomer(customerName, customerEmail);
   const handleBackToCart = () => {
     if (navigation.canGoBack()) {
       navigation.goBack();
@@ -39,6 +42,12 @@ export function CheckoutScreen({ navigation }: CheckoutScreenProps) {
   const handleOpenCardSheet = () => {
     dispatch(setCheckoutStep('card'));
     setCardSheetOpen(true);
+  };
+  const updateCustomerName = (value: string) => {
+    dispatch(setCustomer({ customerEmail, customerName: value }));
+  };
+  const updateCustomerEmail = (value: string) => {
+    dispatch(setCustomer({ customerEmail: value, customerName }));
   };
 
   return (
@@ -61,11 +70,34 @@ export function CheckoutScreen({ navigation }: CheckoutScreenProps) {
         </View>
       </View>
 
+      <View style={styles.customerForm}>
+        <Text style={styles.sectionTitle}>Customer</Text>
+        <TextInput
+          accessibilityLabel="Customer name"
+          autoCapitalize="words"
+          placeholder="Luis Munar"
+          placeholderTextColor={colors.textTertiary}
+          style={styles.input}
+          value={customerName}
+          onChangeText={updateCustomerName}
+        />
+        <TextInput
+          accessibilityLabel="Customer email"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          placeholder="luis@example.com"
+          placeholderTextColor={colors.textTertiary}
+          style={styles.input}
+          value={customerEmail}
+          onChangeText={updateCustomerEmail}
+        />
+      </View>
+
       <View style={styles.actions}>
         <Button
           accessibilityLabel="Pay with credit card"
           label="Pay with credit card"
-          disabled={!hasItems}
+          disabled={!canPay}
           onPress={handleOpenCardSheet}
         />
         <Button
@@ -78,9 +110,14 @@ export function CheckoutScreen({ navigation }: CheckoutScreenProps) {
       <CardPaymentSheet
         visible={isCardSheetOpen}
         onClose={() => setCardSheetOpen(false)}
+        onPaymentFinished={() => navigation.replace('PaymentResult')}
       />
     </Screen>
   );
+}
+
+function isValidCustomer(customerName: string, customerEmail: string) {
+  return customerName.trim().length >= 2 && /\S+@\S+\.\S+/.test(customerEmail);
 }
 
 const styles = StyleSheet.create({
@@ -97,6 +134,25 @@ const styles = StyleSheet.create({
   header: {
     gap: spacing.xs,
     marginBottom: spacing.lg,
+  },
+  customerForm: {
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  input: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    color: colors.textPrimary,
+    fontSize: typography.sizes.md,
+    minHeight: 48,
+    paddingHorizontal: spacing.md,
+  },
+  sectionTitle: {
+    color: colors.textPrimary,
+    fontSize: typography.sizes.lg,
+    fontWeight: '800',
   },
   summary: {
     backgroundColor: colors.surface,

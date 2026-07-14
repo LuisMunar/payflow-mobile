@@ -9,6 +9,7 @@ describe('cardValidation', () => {
   it('normalizes card numbers and validates luhn', () => {
     expect(normalizeCardNumber('4242 4242 4242 4242')).toBe('4242424242424242');
     expect(isValidLuhn('4242424242424242')).toBe(true);
+    expect(isValidLuhn('5555555555554444')).toBe(true);
     expect(isValidLuhn('4242424242424241')).toBe(false);
   });
 

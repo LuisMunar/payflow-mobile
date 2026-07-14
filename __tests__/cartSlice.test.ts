@@ -57,6 +57,27 @@ describe('cartSlice', () => {
     expect(state.items).toEqual([]);
   });
 
+  it('decrements products without removing positive quantities', () => {
+    const withTwoItems = cartReducer(
+      cartReducer(initialCartState, addProduct(product)),
+      addProduct(product),
+    );
+    const state = cartReducer(withTwoItems, decrementProduct(product.id));
+
+    expect(state.items).toEqual([{ product, quantity: 1 }]);
+  });
+
+  it('ignores decrement and quantity changes for unknown products', () => {
+    const decremented = cartReducer(initialCartState, decrementProduct('missing'));
+    const updated = cartReducer(
+      initialCartState,
+      setProductQuantity({ productId: 'missing', quantity: 2 }),
+    );
+
+    expect(decremented).toEqual(initialCartState);
+    expect(updated).toEqual(initialCartState);
+  });
+
   it('sets and removes product quantities', () => {
     const withItem = cartReducer(initialCartState, addProduct(product));
     const withQuantity = cartReducer(

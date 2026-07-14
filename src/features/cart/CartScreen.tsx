@@ -77,7 +77,11 @@ export function CartScreen({ navigation }: CartScreenProps) {
             {formatMoney(totalInCents, currency)}
           </Text>
         </View>
-        <Button label="Checkout" onPress={() => navigation.navigate('Checkout')} />
+        <Button
+          accessibilityLabel="Checkout"
+          label="Checkout"
+          onPress={() => navigation.navigate('Checkout')}
+        />
       </View>
     </Screen>
   );

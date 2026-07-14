@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { CartScreen } from '../../features/cart/CartScreen';
 import { CheckoutScreen } from '../../features/checkout/CheckoutScreen';
+import { PaymentResultScreen } from '../../features/checkout/PaymentResultScreen';
 import { ProductListScreen } from '../../features/products/ProductListScreen';
 import { SplashScreen } from '../../features/splash/SplashScreen';
 import { colors } from '../../shared/theme/colors';
@@ -40,6 +41,11 @@ export function RootNavigator() {
           name="Checkout"
           component={CheckoutScreen}
           options={{ title: 'Checkout' }}
+        />
+        <Stack.Screen
+          name="PaymentResult"
+          component={PaymentResultScreen}
+          options={{ title: 'Payment result' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

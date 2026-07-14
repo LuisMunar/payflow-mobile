@@ -2,6 +2,7 @@ import {
   ScrollView,
   StyleSheet,
   type StyleProp,
+  View,
   type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -12,9 +13,22 @@ import { spacing } from '../theme/layout';
 type ScreenProps = {
   children: React.ReactNode;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  scroll?: boolean;
 };
 
-export function Screen({ children, contentContainerStyle }: ScreenProps) {
+export function Screen({
+  children,
+  contentContainerStyle,
+  scroll = true,
+}: ScreenProps) {
+  if (!scroll) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.content, contentContainerStyle]}>{children}</View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView

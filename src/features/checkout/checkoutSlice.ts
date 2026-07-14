@@ -1,8 +1,10 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
+import type { Transaction } from '../../shared/types/api';
 import type { CardBrand } from '../../shared/validation/cardValidation';
 
 export type CheckoutStep = 'cart' | 'card' | 'summary' | 'processing' | 'result';
+export type PaymentStatus = 'idle' | 'processing' | 'succeeded' | 'failed';
 
 export type CardSummary = {
   brand: CardBrand;
@@ -15,6 +17,9 @@ export type CheckoutState = {
   step: CheckoutStep;
   customerName: string;
   customerEmail: string;
+  paymentError: string | null;
+  paymentResult: Transaction | null;
+  paymentStatus: PaymentStatus;
 };
 
 export const initialCheckoutState: CheckoutState = {
@@ -22,6 +27,9 @@ export const initialCheckoutState: CheckoutState = {
   step: 'cart',
   customerName: '',
   customerEmail: '',
+  paymentError: null,
+  paymentResult: null,
+  paymentStatus: 'idle',
 };
 
 const checkoutSlice = createSlice({
@@ -44,6 +52,22 @@ const checkoutSlice = createSlice({
     clearCardSummary(state) {
       state.cardSummary = null;
     },
+    setPaymentProcessing(state) {
+      state.paymentError = null;
+      state.paymentStatus = 'processing';
+      state.step = 'processing';
+    },
+    setPaymentResult(state, action: PayloadAction<Transaction>) {
+      state.paymentError = null;
+      state.paymentResult = action.payload;
+      state.paymentStatus = 'succeeded';
+      state.step = 'result';
+    },
+    setPaymentError(state, action: PayloadAction<string>) {
+      state.paymentError = action.payload;
+      state.paymentStatus = 'failed';
+      state.step = 'result';
+    },
     resetCheckout() {
       return initialCheckoutState;
     },
@@ -56,5 +80,8 @@ export const {
   setCardSummary,
   setCheckoutStep,
   setCustomer,
+  setPaymentError,
+  setPaymentProcessing,
+  setPaymentResult,
 } = checkoutSlice.actions;
 export default checkoutSlice.reducer;

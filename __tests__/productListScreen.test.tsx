@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
+import { FlatList, Text } from 'react-native';
 
 import { ProductListScreen } from '../src/features/products/ProductListScreen';
 import type { RootState } from '../src/app/store';
@@ -95,6 +96,112 @@ describe('ProductListScreen', () => {
       tree.root.findByProps({ accessibilityLabel: 'Open cart' }).props.onPress();
     });
     expect(navigation.navigate).toHaveBeenCalledWith('Cart');
+
+    ReactTestRenderer.act(() => {
+      tree.root.findByProps({ accessibilityLabel: 'View cart' }).props.onPress();
+    });
+    expect(navigation.navigate).toHaveBeenCalledWith('Cart');
+  });
+
+  it('renders loading and empty catalog states', () => {
+    mockState.products.status = 'loading';
+    const loading = render(
+      <ProductListScreen navigation={navigation as never} route={{} as never} />,
+    );
+
+    expect(loading.root.findByProps({ children: 'Loading products' })).toBeTruthy();
+
+    mockState.products.status = 'succeeded';
+    const empty = render(
+      <ProductListScreen navigation={navigation as never} route={{} as never} />,
+    );
+    const list = empty.root.findByType(FlatList);
+
+    expect(list.props.ListEmptyComponent).toBeTruthy();
+    expect(list.props.ItemSeparatorComponent()).toBeTruthy();
+  });
+
+  it('marks refresh control as refreshing when reloading existing products', () => {
+    mockState = {
+      cart: {
+        items: [],
+        restored: true,
+      },
+      products: {
+        error: null,
+        items: [
+          {
+            id: 'product-1',
+            available: true,
+            currency: 'COP',
+            description: 'A compact product description',
+            imageUrl: 'https://example.test/product.jpg',
+            name: 'Test product',
+            priceInCents: 199900,
+            stock: 4,
+          },
+        ],
+        status: 'loading',
+      },
+    };
+
+    const tree = render(
+      <ProductListScreen navigation={navigation as never} route={{} as never} />,
+    );
+    const refreshControl = tree.root.findByType(FlatList).props.refreshControl;
+
+    expect(refreshControl.props.refreshing).toBe(true);
+    ReactTestRenderer.act(() => {
+      refreshControl.props.onRefresh();
+    });
+    expect(mockDispatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders singular checkout copy', () => {
+    mockState = {
+      cart: {
+        items: [
+          {
+            product: {
+              id: 'product-1',
+              available: true,
+              currency: 'COP',
+              description: 'A compact product description',
+              imageUrl: 'https://example.test/product.jpg',
+              name: 'Test product',
+              priceInCents: 199900,
+              stock: 4,
+            },
+            quantity: 1,
+          },
+        ],
+        restored: true,
+      },
+      products: {
+        error: null,
+        items: [],
+        status: 'succeeded',
+      },
+    };
+
+    const tree = render(
+      <ProductListScreen navigation={navigation as never} route={{} as never} />,
+    );
+
+    const checkoutCopy = tree.root
+      .findAllByType(Text)
+      .find(node => {
+        const children = node.props.children;
+
+        return (
+          Array.isArray(children) &&
+          children.includes(1) &&
+          children.includes('item') &&
+          children.includes(' selected')
+        );
+      });
+
+    expect(checkoutCopy).toBeTruthy();
   });
 
   it('renders backend errors with retry action', () => {

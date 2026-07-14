@@ -90,5 +90,43 @@ describe('CartScreen', () => {
     });
 
     expect(mockDispatch).toHaveBeenCalledTimes(3);
+
+    ReactTestRenderer.act(() => {
+      tree.root.findByProps({ accessibilityLabel: 'Checkout' }).props.onPress();
+    });
+
+    expect(navigation.navigate).toHaveBeenCalledWith('Checkout');
+  });
+
+  it('disables increment at product stock limit', () => {
+    mockState = {
+      cart: {
+        items: [
+          {
+            product: {
+              id: 'product-1',
+              available: true,
+              currency: 'COP',
+              description: 'Test product',
+              imageUrl: 'https://example.test/product.jpg',
+              name: 'Test product',
+              priceInCents: 120000,
+              stock: 2,
+            },
+            quantity: 2,
+          },
+        ],
+        restored: true,
+      },
+    };
+
+    const tree = render(
+      <CartScreen navigation={navigation as never} route={{} as never} />,
+    );
+
+    expect(
+      tree.root.findByProps({ accessibilityLabel: 'Increase Test product' }).props
+        .disabled,
+    ).toBe(true);
   });
 });
