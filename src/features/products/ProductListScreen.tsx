@@ -1,7 +1,17 @@
 import { useCallback, useEffect } from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import {
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import type { RootStackParamList } from '../../app/navigation/types';
+import { selectCartItemCount } from '../cart/cartSelectors';
 import { addProduct } from '../cart/cartSlice';
 import { Button } from '../../shared/components/Button';
 import { EmptyState } from '../../shared/components/EmptyState';
@@ -18,12 +28,15 @@ function ProductSeparator() {
   return <View style={styles.separator} />;
 }
 
-export function ProductListScreen() {
+type ProductListScreenProps = NativeStackScreenProps<
+  RootStackParamList,
+  'Products'
+>;
+
+export function ProductListScreen({ navigation }: ProductListScreenProps) {
   const dispatch = useAppDispatch();
   const { items, status, error } = useAppSelector(state => state.products);
-  const cartCount = useAppSelector(state =>
-    state.cart.items.reduce((total, item) => total + item.quantity, 0),
-  );
+  const cartCount = useAppSelector(selectCartItemCount);
 
   const loadProducts = useCallback(() => {
     dispatch(fetchProducts());
@@ -50,15 +63,24 @@ export function ProductListScreen() {
           <Text style={styles.eyebrow}>Secure checkout</Text>
           <Text style={styles.title}>Choose your products</Text>
         </View>
-        <View style={styles.cartBadge}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open cart"
+          onPress={() => navigation.navigate('Cart')}
+          style={styles.cartBadge}>
           <Text style={styles.cartBadgeText}>{cartCount}</Text>
-        </View>
+        </Pressable>
       </View>
 
       {error ? (
         <View style={styles.errorBox}>
           <Text style={styles.errorText}>{error}</Text>
-          <Button label="Retry" onPress={loadProducts} variant="secondary" />
+          <Button
+            accessibilityLabel="Retry products"
+            label="Retry"
+            onPress={loadProducts}
+            variant="secondary"
+          />
         </View>
       ) : null}
 
@@ -84,6 +106,15 @@ export function ProductListScreen() {
           ) : null
         }
       />
+
+      {cartCount > 0 ? (
+        <View style={styles.checkoutBar}>
+          <Text style={styles.checkoutBarText}>
+            {cartCount} {cartCount === 1 ? 'item' : 'items'} selected
+          </Text>
+          <Button label="View cart" onPress={() => navigation.navigate('Cart')} />
+        </View>
+      ) : null}
     </Screen>
   );
 }
@@ -116,6 +147,20 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: typography.sizes.sm,
     lineHeight: 19,
+  },
+  checkoutBar: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    gap: spacing.md,
+    marginTop: spacing.md,
+    padding: spacing.md,
+  },
+  checkoutBarText: {
+    color: colors.textPrimary,
+    fontSize: typography.sizes.sm,
+    fontWeight: '700',
   },
   eyebrow: {
     color: colors.primary,
