@@ -93,9 +93,13 @@ describe('CartScreen', () => {
 
     ReactTestRenderer.act(() => {
       tree.root.findByProps({ accessibilityLabel: 'Checkout' }).props.onPress();
+      tree.root
+        .findByProps({ accessibilityLabel: 'Add more products' })
+        .props.onPress();
     });
 
     expect(navigation.navigate).toHaveBeenCalledWith('Checkout');
+    expect(navigation.navigate).toHaveBeenCalledWith('Products');
   });
 
   it('disables increment at product stock limit', () => {

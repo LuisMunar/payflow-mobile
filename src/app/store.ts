@@ -8,10 +8,17 @@ import cartReducer, {
   removeProduct,
   setProductQuantity,
 } from '../features/cart/cartSlice';
-import checkoutReducer from '../features/checkout/checkoutSlice';
+import checkoutReducer, {
+  checkoutStorage,
+  clearCardSummary,
+  resetCheckout,
+  setCardSummary,
+  setCustomer,
+} from '../features/checkout/checkoutSlice';
 import productsReducer from '../features/products/productsSlice';
 
 const cartPersistenceMiddleware = createListenerMiddleware();
+const checkoutPersistenceMiddleware = createListenerMiddleware();
 
 const reducer = {
   cart: cartReducer,
@@ -22,7 +29,10 @@ const reducer = {
 export const store = configureStore({
   reducer,
   middleware: getDefaultMiddleware =>
-    getDefaultMiddleware().prepend(cartPersistenceMiddleware.middleware),
+    getDefaultMiddleware().prepend(
+      cartPersistenceMiddleware.middleware,
+      checkoutPersistenceMiddleware.middleware,
+    ),
 });
 
 cartPersistenceMiddleware.startListening({
@@ -37,6 +47,15 @@ cartPersistenceMiddleware.startListening({
     const state = listenerApi.getState() as RootState;
 
     await cartStorage.persist(state.cart.items);
+  },
+});
+
+checkoutPersistenceMiddleware.startListening({
+  matcher: isAnyOf(setCustomer, setCardSummary, clearCardSummary, resetCheckout),
+  effect: async (_action, listenerApi) => {
+    const state = listenerApi.getState() as RootState;
+
+    await checkoutStorage.persist(state.checkout);
   },
 });
 

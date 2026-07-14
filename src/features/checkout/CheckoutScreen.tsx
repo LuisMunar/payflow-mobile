@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -6,6 +6,7 @@ import type { RootStackParamList } from '../../app/navigation/types';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { Button } from '../../shared/components/Button';
 import { Screen } from '../../shared/components/Screen';
+import { ToastBanner } from '../../shared/components/ToastBanner';
 import { colors } from '../../shared/theme/colors';
 import { radii, spacing } from '../../shared/theme/layout';
 import { typography } from '../../shared/theme/typography';
@@ -30,7 +31,18 @@ export function CheckoutScreen({ navigation }: CheckoutScreenProps) {
   const customerName = useAppSelector(state => state.checkout.customerName);
   const customerEmail = useAppSelector(state => state.checkout.customerEmail);
   const [isCardSheetOpen, setCardSheetOpen] = useState(false);
-  const canPay = hasItems && isValidCustomer(customerName, customerEmail);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toastMessage) {
+      return undefined;
+    }
+
+    const timeoutId = setTimeout(() => setToastMessage(null), 2800);
+
+    return () => clearTimeout(timeoutId);
+  }, [toastMessage]);
+
   const handleBackToCart = () => {
     if (navigation.canGoBack()) {
       navigation.goBack();
@@ -40,6 +52,16 @@ export function CheckoutScreen({ navigation }: CheckoutScreenProps) {
     navigation.navigate('Cart');
   };
   const handleOpenCardSheet = () => {
+    if (!hasItems) {
+      setToastMessage('Add at least one product before paying.');
+      return;
+    }
+
+    if (!isValidCustomer(customerName, customerEmail)) {
+      setToastMessage('Enter a valid customer name and email before paying.');
+      return;
+    }
+
     dispatch(setCheckoutStep('card'));
     setCardSheetOpen(true);
   };
@@ -94,10 +116,10 @@ export function CheckoutScreen({ navigation }: CheckoutScreenProps) {
       </View>
 
       <View style={styles.actions}>
+        <ToastBanner message={toastMessage} />
         <Button
           accessibilityLabel="Pay with credit card"
           label="Pay with credit card"
-          disabled={!canPay}
           onPress={handleOpenCardSheet}
         />
         <Button

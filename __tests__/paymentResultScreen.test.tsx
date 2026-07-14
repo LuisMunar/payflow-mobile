@@ -56,6 +56,7 @@ describe('PaymentResultScreen', () => {
           status: 'APPROVED',
         },
         paymentStatus: 'succeeded',
+        restored: true,
         step: 'result',
       },
     };
