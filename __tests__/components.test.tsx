@@ -34,12 +34,14 @@ describe('shared components', () => {
   it('renders buttons and handles press events', () => {
     const onPress = jest.fn();
     const tree = render(<Button label="Continue" onPress={onPress} />);
+    const button = tree.root.findByProps({ accessibilityRole: 'button' });
 
     ReactTestRenderer.act(() => {
-      tree.root.findByProps({ accessibilityRole: 'button' }).props.onPress();
+      button.props.onPress();
     });
 
     expect(onPress).toHaveBeenCalledTimes(1);
+    expect(button.props.style({ pressed: true })).toBeTruthy();
     expect(tree.root.findByProps({ children: 'Continue' })).toBeTruthy();
   });
 
@@ -74,5 +76,24 @@ describe('shared components', () => {
     expect(onAddPress).toHaveBeenCalledTimes(1);
     expect(tree.root.findByProps({ children: 'Test product' })).toBeTruthy();
     expect(tree.root.findByProps({ children: '4 available' })).toBeTruthy();
+  });
+
+  it('renders unavailable product cards as disabled', () => {
+    const onAddPress = jest.fn();
+    const unavailableProduct = {
+      ...product,
+      available: false,
+      stock: 0,
+    };
+    const tree = render(
+      <ProductCard product={unavailableProduct} onAddPress={onAddPress} />,
+    );
+    const addButton = tree.root.findByProps({
+      accessibilityLabel: 'Add Test product to cart',
+    });
+
+    expect(tree.root.findByProps({ children: 'Out of stock' })).toBeTruthy();
+    expect(addButton.props.disabled).toBe(true);
+    expect(addButton.props.style({ pressed: true })).toBeTruthy();
   });
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
 
+import { CardPaymentSheet } from '../src/features/checkout/CardPaymentSheet';
 import { CheckoutScreen } from '../src/features/checkout/CheckoutScreen';
 import { setCheckoutStep } from '../src/features/checkout/checkoutSlice';
 import type { RootState } from '../src/app/store';
@@ -9,6 +10,7 @@ const navigation = {
   canGoBack: jest.fn(),
   goBack: jest.fn(),
   navigate: jest.fn(),
+  replace: jest.fn(),
 };
 const mockDispatch = jest.fn();
 let mockState: Pick<RootState, 'cart' | 'checkout'>;
@@ -34,6 +36,7 @@ describe('CheckoutScreen', () => {
     navigation.canGoBack.mockReturnValue(true);
     navigation.goBack.mockReset();
     navigation.navigate.mockReset();
+    navigation.replace.mockReset();
     mockDispatch.mockReset();
     mockState = {
       cart: {
@@ -58,6 +61,9 @@ describe('CheckoutScreen', () => {
         cardSummary: null,
         customerEmail: '',
         customerName: '',
+        paymentError: null,
+        paymentResult: null,
+        paymentStatus: 'idle',
         step: 'cart',
       },
     };
@@ -92,6 +98,8 @@ describe('CheckoutScreen', () => {
   });
 
   it('opens the card form from checkout', () => {
+    mockState.checkout.customerEmail = 'luis@example.com';
+    mockState.checkout.customerName = 'Luis Munar';
     const tree = render(
       <CheckoutScreen navigation={navigation as never} route={{} as never} />,
     );
@@ -104,5 +112,52 @@ describe('CheckoutScreen', () => {
 
     expect(mockDispatch).toHaveBeenCalledWith(setCheckoutStep('card'));
     expect(tree.root.findByProps({ children: 'Add your payment card' })).toBeTruthy();
+  });
+
+  it('closes card sheet and replaces checkout with result after payment', () => {
+    mockState.checkout.customerEmail = 'luis@example.com';
+    mockState.checkout.customerName = 'Luis Munar';
+    const tree = render(
+      <CheckoutScreen navigation={navigation as never} route={{} as never} />,
+    );
+
+    ReactTestRenderer.act(() => {
+      tree.root
+        .findByProps({ accessibilityLabel: 'Pay with credit card' })
+        .props.onPress();
+    });
+
+    const sheet = tree.root.findByType(CardPaymentSheet);
+
+    ReactTestRenderer.act(() => {
+      sheet.props.onClose();
+      sheet.props.onPaymentFinished();
+    });
+
+    expect(navigation.replace).toHaveBeenCalledWith('PaymentResult');
+  });
+
+  it('stores customer information before opening payment', () => {
+    const tree = render(
+      <CheckoutScreen navigation={navigation as never} route={{} as never} />,
+    );
+
+    ReactTestRenderer.act(() => {
+      tree.root
+        .findByProps({ accessibilityLabel: 'Customer name' })
+        .props.onChangeText('Luis Munar');
+      tree.root
+        .findByProps({ accessibilityLabel: 'Customer email' })
+        .props.onChangeText('luis@example.com');
+    });
+
+    expect(mockDispatch).toHaveBeenCalledWith({
+      payload: { customerEmail: '', customerName: 'Luis Munar' },
+      type: 'checkout/setCustomer',
+    });
+    expect(mockDispatch).toHaveBeenCalledWith({
+      payload: { customerEmail: 'luis@example.com', customerName: '' },
+      type: 'checkout/setCustomer',
+    });
   });
 });

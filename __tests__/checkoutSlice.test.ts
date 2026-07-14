@@ -5,6 +5,9 @@ import checkoutReducer, {
   setCardSummary,
   setCheckoutStep,
   setCustomer,
+  setPaymentError,
+  setPaymentProcessing,
+  setPaymentResult,
 } from '../src/features/checkout/checkoutSlice';
 
 describe('checkoutSlice', () => {
@@ -66,5 +69,37 @@ describe('checkoutSlice', () => {
     );
 
     expect(state.cardSummary).toBeNull();
+  });
+
+  it('tracks payment processing, results and errors', () => {
+    const processing = checkoutReducer(initialCheckoutState, setPaymentProcessing());
+
+    expect(processing.paymentStatus).toBe('processing');
+    expect(processing.step).toBe('processing');
+
+    const approved = checkoutReducer(
+      processing,
+      setPaymentResult({
+        amountInCents: 120000,
+        cardBrand: 'VISA',
+        cardLastFour: '4242',
+        currency: 'COP',
+        customerEmail: 'luis@example.com',
+        customerName: 'Luis Munar',
+        items: [],
+        reference: 'PAY-1',
+        status: 'APPROVED',
+      }),
+    );
+
+    expect(approved.paymentStatus).toBe('succeeded');
+    expect(approved.paymentResult?.status).toBe('APPROVED');
+    expect(approved.step).toBe('result');
+
+    const failed = checkoutReducer(approved, setPaymentError('Network error'));
+
+    expect(failed.paymentStatus).toBe('failed');
+    expect(failed.paymentError).toBe('Network error');
+    expect(failed.step).toBe('result');
   });
 });

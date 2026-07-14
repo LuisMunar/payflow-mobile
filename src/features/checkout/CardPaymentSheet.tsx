@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import { ApiError } from '../../shared/api/client';
+import { paymentsApi } from '../../shared/api/paymentsApi';
 import { Button } from '../../shared/components/Button';
 import { colors } from '../../shared/theme/colors';
 import { radii, spacing } from '../../shared/theme/layout';
@@ -25,19 +27,26 @@ import {
   type CardValidationResult,
 } from '../../shared/validation/cardValidation';
 import {
+  selectCartItems,
   selectCartCurrency,
   selectCartItemCount,
   selectCartTotalInCents,
 } from '../cart/cartSelectors';
+import { clearCart } from '../cart/cartSlice';
+import { fetchProducts } from '../products/productsSlice';
 import {
   setCardSummary,
   setCheckoutStep,
+  setPaymentError,
+  setPaymentProcessing,
+  setPaymentResult,
   type CardSummary,
 } from './checkoutSlice';
 
 type CardPaymentSheetProps = {
   visible: boolean;
   onClose: () => void;
+  onPaymentFinished: () => void;
 };
 
 type CardFormState = CardValidationInput;
@@ -50,17 +59,28 @@ const emptyForm: CardFormState = {
   number: '',
 };
 
-export function CardPaymentSheet({ visible, onClose }: CardPaymentSheetProps) {
+export function CardPaymentSheet({
+  visible,
+  onClose,
+  onPaymentFinished,
+}: CardPaymentSheetProps) {
   const dispatch = useAppDispatch();
+  const items = useAppSelector(selectCartItems);
   const itemCount = useAppSelector(selectCartItemCount);
   const totalInCents = useAppSelector(selectCartTotalInCents);
   const currency = useAppSelector(selectCartCurrency);
   const cardSummary = useAppSelector(state => state.checkout.cardSummary);
+  const customerEmail = useAppSelector(state => state.checkout.customerEmail);
+  const customerName = useAppSelector(state => state.checkout.customerName);
+  const paymentStatus = useAppSelector(state => state.checkout.paymentStatus);
   const checkoutStep = useAppSelector(state => state.checkout.step);
   const [form, setForm] = useState<CardFormState>(emptyForm);
   const [errors, setErrors] = useState<CardValidationResult['errors']>({});
+  const [paymentError, setLocalPaymentError] = useState<string | null>(null);
   const brand = useMemo(() => detectCardBrand(form.number), [form.number]);
-  const isSummary = checkoutStep === 'summary' && cardSummary;
+  const isSummary =
+    (checkoutStep === 'summary' || checkoutStep === 'processing') && cardSummary;
+  const isProcessing = paymentStatus === 'processing';
 
   const updateField = (field: keyof CardFormState, value: string) => {
     setErrors(current => ({ ...current, [field]: undefined }));
@@ -84,9 +104,61 @@ export function CardPaymentSheet({ visible, onClose }: CardPaymentSheetProps) {
     dispatch(setCardSummary(summary));
     dispatch(setCheckoutStep('summary'));
     setErrors({});
+    setLocalPaymentError(null);
+  };
+
+  const handleConfirmPayment = async () => {
+    setLocalPaymentError(null);
+    dispatch(setPaymentProcessing());
+
+    try {
+      const transaction = await paymentsApi.createTransaction({
+        customerEmail: customerEmail.trim(),
+        customerName: customerName.trim(),
+        items: items.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+        })),
+      });
+
+      if (!transaction.id) {
+        throw new Error('The backend did not return a transaction id.');
+      }
+
+      const paidTransaction = await paymentsApi.processCardPayment(transaction.id, {
+        card: {
+          cardHolder: form.cardHolder.trim(),
+          cvc: form.cvc,
+          expMonth: form.expMonth,
+          expYear: form.expYear,
+          number: normalizeCardNumber(form.number),
+        },
+        installments: 1,
+      });
+
+      dispatch(setPaymentResult(paidTransaction));
+
+      if (paidTransaction.status === 'APPROVED') {
+        dispatch(clearCart());
+        dispatch(fetchProducts());
+      }
+
+      setForm(emptyForm);
+      onClose();
+      onPaymentFinished();
+    } catch (error) {
+      const message = getPaymentErrorMessage(error);
+
+      setLocalPaymentError(message);
+      dispatch(setPaymentError(message));
+    }
   };
 
   const handleClose = () => {
+    if (isProcessing) {
+      return;
+    }
+
     if (checkoutStep === 'summary') {
       dispatch(setCheckoutStep('card'));
     }
@@ -115,7 +187,10 @@ export function CardPaymentSheet({ visible, onClose }: CardPaymentSheetProps) {
               cardSummary={cardSummary}
               currency={currency}
               itemCount={itemCount}
+              paymentError={paymentError}
+              paymentStatus={paymentStatus}
               totalInCents={totalInCents}
+              onConfirmPayment={handleConfirmPayment}
             />
           ) : (
             <ScrollView
@@ -254,6 +329,9 @@ type PaymentSummaryProps = {
   cardSummary: CardSummary;
   currency: string;
   itemCount: number;
+  onConfirmPayment: () => void;
+  paymentError: string | null;
+  paymentStatus: string;
   totalInCents: number;
 };
 
@@ -261,8 +339,13 @@ function PaymentSummary({
   cardSummary,
   currency,
   itemCount,
+  onConfirmPayment,
+  paymentError,
+  paymentStatus,
   totalInCents,
 }: PaymentSummaryProps) {
+  const isProcessing = paymentStatus === 'processing';
+
   return (
     <View style={styles.content}>
       <View style={styles.header}>
@@ -277,10 +360,13 @@ function PaymentSummary({
         <SummaryRow label="Last four" value={`**** ${cardSummary.lastFour}`} />
       </View>
 
+      {paymentError ? <Text style={styles.error}>{paymentError}</Text> : null}
+
       <Button
         accessibilityLabel="Confirm payment"
-        label="Confirm payment"
-        onPress={() => undefined}
+        disabled={isProcessing}
+        label={isProcessing ? 'Processing payment' : 'Confirm payment'}
+        onPress={onConfirmPayment}
       />
     </View>
   );
@@ -323,6 +409,18 @@ function formatBrand(brand: CardSummary['brand']) {
   }
 
   return 'Unknown';
+}
+
+function getPaymentErrorMessage(error: unknown) {
+  if (error instanceof ApiError && error.status) {
+    return `Payment could not be processed. Backend status: ${error.status}.`;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return 'Payment could not be processed.';
 }
 
 const styles = StyleSheet.create({
