@@ -21,7 +21,12 @@ android/**/.cxx/
 *.apk
 *.aab
 *.keystore
+*.jks
 !debug.keystore
+!android/app/release/app-release.apk
+android/app/release/output-metadata.json
+android/app/release/baselineProfiles/
+android/gradle/gradle-daemon-jvm.properties
 
 # Environment
 .env

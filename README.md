@@ -202,22 +202,37 @@ Coverage target: more than 80%.
 
 ## Android APK
 
-Generate a debug APK:
+The installable release APK for delivery is versioned at:
+
+```text
+android/app/release/app-release.apk
+```
+
+This release APK is signed locally for the technical test and supports the local
+backend URL used by the Android emulator.
+
+Generate a development debug APK:
 
 ```bash
 npm run android:apk
 ```
 
-Default APK output path:
+Default debug APK output path:
 
 ```text
 android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Install the generated APK on a connected emulator or Android device:
+Install the debug APK on a connected emulator or Android device:
 
 ```bash
 npm run android:install
+```
+
+Install the release APK manually:
+
+```bash
+$ANDROID_HOME/platform-tools/adb install -r android/app/release/app-release.apk
 ```
 
 ## Manual Verification
