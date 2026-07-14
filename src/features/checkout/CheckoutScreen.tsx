@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../app/navigation/types';
-import { useAppSelector } from '../../app/hooks';
+import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { Button } from '../../shared/components/Button';
 import { Screen } from '../../shared/components/Screen';
 import { colors } from '../../shared/theme/colors';
@@ -15,14 +16,18 @@ import {
   selectCartTotalInCents,
   selectHasCartItems,
 } from '../cart/cartSelectors';
+import { CardPaymentSheet } from './CardPaymentSheet';
+import { setCheckoutStep } from './checkoutSlice';
 
 type CheckoutScreenProps = NativeStackScreenProps<RootStackParamList, 'Checkout'>;
 
 export function CheckoutScreen({ navigation }: CheckoutScreenProps) {
+  const dispatch = useAppDispatch();
   const hasItems = useAppSelector(selectHasCartItems);
   const itemCount = useAppSelector(selectCartItemCount);
   const totalInCents = useAppSelector(selectCartTotalInCents);
   const currency = useAppSelector(selectCartCurrency);
+  const [isCardSheetOpen, setCardSheetOpen] = useState(false);
   const handleBackToCart = () => {
     if (navigation.canGoBack()) {
       navigation.goBack();
@@ -30,6 +35,10 @@ export function CheckoutScreen({ navigation }: CheckoutScreenProps) {
     }
 
     navigation.navigate('Cart');
+  };
+  const handleOpenCardSheet = () => {
+    dispatch(setCheckoutStep('card'));
+    setCardSheetOpen(true);
   };
 
   return (
@@ -57,7 +66,7 @@ export function CheckoutScreen({ navigation }: CheckoutScreenProps) {
           accessibilityLabel="Pay with credit card"
           label="Pay with credit card"
           disabled={!hasItems}
-          onPress={() => undefined}
+          onPress={handleOpenCardSheet}
         />
         <Button
           accessibilityLabel="Back to cart"
@@ -66,6 +75,10 @@ export function CheckoutScreen({ navigation }: CheckoutScreenProps) {
           onPress={handleBackToCart}
         />
       </View>
+      <CardPaymentSheet
+        visible={isCardSheetOpen}
+        onClose={() => setCardSheetOpen(false)}
+      />
     </Screen>
   );
 }
