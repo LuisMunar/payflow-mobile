@@ -3,18 +3,25 @@ node_modules/
 
 # React Native / Metro
 .metro-health-check*
+*.jsbundle
 
 # Build output
 coverage/
 dist/
+build/
 
 # Android
 android/.gradle/
 android/app/build/
 android/build/
 android/local.properties
+android/.kotlin/
+android/.cxx/
+android/**/.cxx/
 *.apk
 *.aab
+*.keystore
+!debug.keystore
 
 # Environment
 .env
@@ -32,6 +39,12 @@ pnpm-debug.log*
 .DS_Store
 .idea/
 .vscode/
+*.iml
+*.hprof
+
+# Ruby / native dependency caches
+.bundle/
+vendor/bundle/
 
 # Challenge/private material
 *Development Test*
